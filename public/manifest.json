@@ -1,0 +1,11 @@
+{
+  "name": "Carpro LT - tiekimas",
+  "short_name": "Tiekimas",
+  "icons": [{
+        "src": "/media/logo.png",
+        "sizes": "192x192"
+      }],
+  "start_url": "/active",
+  "display": "standalone",
+  "gcm_sender_id": "68446127643"
+}

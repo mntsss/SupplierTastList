@@ -1,0 +1,4 @@
+[07-Mar-2018 11:28:31 Europe/Vilnius] PHP Parse error:  syntax error, unexpected '?', expecting variable (T_VARIABLE) in /home/carprolt/tiekimas-files/vendor/symfony/finder/Comparator/NumberComparator.php on line 42
+[07-Mar-2018 11:28:31 Europe/Vilnius] PHP Fatal error:  Exception thrown without a stack frame in Unknown on line 0
+[07-Mar-2018 11:32:18 Europe/Vilnius] PHP Parse error:  syntax error, unexpected '?', expecting variable (T_VARIABLE) in /home/carprolt/tiekimas-files/vendor/symfony/finder/Comparator/NumberComparator.php on line 42
+[07-Mar-2018 11:32:18 Europe/Vilnius] PHP Fatal error:  Exception thrown without a stack frame in Unknown on line 0
