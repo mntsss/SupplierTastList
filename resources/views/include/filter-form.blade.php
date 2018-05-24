@@ -20,9 +20,9 @@
 </div>
 <script src="{{asset('js/datetimepicker.js')}}"></script>
 <script>
-  jQuery(document).ready(function () {
+  $(document).ready(function () {
       'use strict';
-      jQuery('#datepickerFrom').datetimepicker();
-      jQuery('#datepickerTil').datetimepicker();
+      $('#datepickerFrom').datetimepicker();
+      $('#datepickerTil').datetimepicker();
   });
 </script>

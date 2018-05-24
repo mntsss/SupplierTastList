@@ -139,6 +139,68 @@
     opacity: 0.4;
 }
 
+.btn-notifications{
+  color: rgba(255,255,255,.5);
+  border-color: rgba(255,255,255,.1);
+  padding: .25rem .75rem;
+  font-size: 1.25rem;
+  line-height: 1;
+  background-color: transparent;
+  border: 1px solid transparent;
+  border-radius: .25rem;
+  position: relative;
+}
+
+.btn-notifications .badge{
+  position: absolute !important;
+  top: 0px !important;
+  right: 0px;
+}
+
+.notifications-wrapper{
+  position: relative;
+}
+
+.notifications-box{
+  left: -80px;
+  padding: 10px;
+  border-radius: 5px;
+  background-color: #fff;
+  border: 1px solid #000;
+  position: absolute;
+  top: 35px;
+  display: none;
+  width: 240px;
+  z-index: 100;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.notifications-box-row{
+  border-bottom: 1px solid black;
+  position: relative;
+  padding: 5px 0;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.notifications-box-row .badge{
+  position: absolute !important;
+  right: 2px !important;
+  top: 5px !important;
+}
+
+.notifications-box-row:hover{
+  background-color: #c9c9c9;
+  cursor: pointer;
+
+}
+
+.btn-notifications:hover .notifications-box{
+  display: block;
+
+}
 
 @media only screen and (max-width: 770px){
   .order-entry{

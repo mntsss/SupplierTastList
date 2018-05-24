@@ -17,6 +17,7 @@ class CreateChatMessagesTable extends Migration
             $table->increments('ChatMessageID');
             $table->integer('OrderID');
             $table->integer('UserID');
+            $table->boolean('IsRead')->default('0');
             $table->text('ChatMessage')->nullable();
             $table->timestamps();
         });

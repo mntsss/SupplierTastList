@@ -13,9 +13,10 @@
 
     <link rel='shortcut icon' href='{{asset('media/favicon.ico')}}' type='image/x-icon' />
 
-    <link href="{{ asset('css/style.css') }}" rel="stylesheet">
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
-    <link href="https://use.fontawesome.com/releases/v5.0.6/css/all.css" rel="stylesheet">
+      <link href="{{ asset('css/style.css') }}" rel="stylesheet">
+      <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+      <link href="https://use.fontawesome.com/releases/v5.0.6/css/all.css" rel="stylesheet">
+
 
   <meta name="mobile-web-app-capable" content="yes">
   <link rel="icon" sizes="192x192" href="{{asset('media/logo.png')}}">
@@ -30,10 +31,176 @@
   <!-- Tile icon for Win8 (144x144 + tile color) -->
   <meta name="msapplication-TileImage" content="{{asset('media/logo.png')}}">
   <meta name="msapplication-TileColor" content="#3372DF">
-
-
   <!-- Include manifest file in the page -->
   <link rel="manifest" href="manifest.json">
+  <script src="{{asset('js/jquery-3.2.1.min.js')}}"></script>
+  <script>
+  (function($) {
+    $(function() {
+      var activeurl = window.location + '';
+      var active = activeurl.split('?');
+      $('a[href="'+active[0]+'"]').addClass('active');
+      getChatUnreadMessages();
+    });
+  })(jQuery);
+
+
+  var loadDate = null;
+  function formatedDate()
+  {
+    var date = new Date();
+    var month = (date.getMonth()+1).toString();
+    var day = (date.getDate()).toString();
+    var hours = (date.getHours()).toString();
+    var minutes = (date.getMinutes()).toString();
+    var seconds = (date.getSeconds()).toString();
+    if(month.length < 2)
+      month = "0"+month;
+    if(day.length < 2)
+      day = "0"+day;
+    if(hours.length < 2)
+     hours = "0"+hours;
+    if(minutes.length <2)
+      minutes = "0"+minutes;
+    if(seconds.length <2)
+      seconds = "0"+seconds;
+
+    return date.getFullYear()+"-"+month+"-"+day+" "+hours+":"+minutes+":"+seconds;
+  }
+  $(document).ready(function(){
+      loadDate = formatedDate();
+
+    navigator.serviceWorker.register('{{asset('service-worker.js')}}');
+
+    setInterval(function(){
+    $.ajax({
+      url: '/checkupdates',
+      type: 'POST',
+      dataType: 'html',
+      data: {date: loadDate, _token: "{{ csrf_token() }}"},
+      success: function(data){
+        if(data != "0")
+        {
+          sendNotification();
+        }
+        }
+      });
+    },3000);
+
+    });
+
+    var user = {!!Auth::user()!!};
+
+    function loadChatMessages(id){
+      return fetch('/chat/get/'+id, {credentials: "same-origin"})
+      .then(processStatus)
+      .then(parseJson)
+      .then(function(data){
+        $('#chat-content').empty();
+        $('#chat-box-order-id').val(id);
+        $('#chat-header').html(data['name']);
+        data['chat_messages'].forEach(function(message){
+          if(message['UserID'] === user['id']){
+            $('#chat-content').append('<li class="send-msg float-right mb-2"><p class="pt-1 pb-1 pl-2 pr-2 m-0 rounded">'+message['ChatMessage']+'</p></li>');
+          }
+          else{
+            $('#chat-content').append('<li class="receive-msg float-left mb-2">\
+                <div class="sender-img">\
+                    <span class="float-left">'+message['user']['name']+'</span>\
+                </div>\
+                <div class="receive-msg-desc float-left ml-2">\
+                    <p class="bg-white m-0 pt-1 pb-1 pl-2 pr-2 rounded">\
+                        '+message['ChatMessage']+'\
+                    </p>\
+                </div>\
+            </li>');
+          }
+        })
+        $('.chat-main').show();
+        var chatContent = $('#chat');
+        chatContent.animate({ scrollTop: chatContent.prop('scrollHeight')}, 100);
+        $('#chat-box-message').focus();
+      });
+    }
+
+    function sendNotification(){
+      $.ajax({
+        url: '/notification/info',
+        type: 'get',
+        dataType: 'html',
+        success: function(data){
+          navigator.serviceWorker.controller.postMessage({'action': data})
+          $.ajax({
+            url: '/notification/send',
+            type: 'GET',
+            contentType: 'application/json',
+            dataType: 'json',
+            complete: function(){
+              location.reload();
+            }
+          });
+          }
+      });
+    }
+    function sendChatNotification(){
+          navigator.serviceWorker.controller.postMessage({'action': 'Nauja chato žinutė!'});
+          $.ajax({
+            url: '/notification/send',
+            type: 'GET',
+            contentType: 'application/json',
+            dataType: 'json',
+          });
+    }
+
+    function updateUserSubscription(subscriptionId){
+      $.ajax({
+        url: '/updatesub',
+        type: 'POST',
+        dataType: 'html',
+        data: {_token: "{{ csrf_token() }}", subscription: subscriptionId},
+        success: function(data){
+          if(data == "0"){
+            alert('Klaida: notifikacijų įjungti nepavyko.');
+          }
+        }
+      })
+    }
+
+    function getChatUnreadMessages(){
+      fetch('/chat/unread', {credentials: "same-origin"})
+      .then(processStatus)
+      .then(parseJson)
+      .then((response)=>{
+        displayChatNotifications(response);
+      })
+    }
+
+    function displayChatNotifications(chats){
+      if(chats.length === 0)
+      {
+        $('.notification-counter-badge').addClass('d-none');
+        $('.notifications-box').empty();
+        $('.notifications-box').append('<div class="row remove-side-margin p-10">\
+          <h6 class="text-center">Naujų chato žinučių nėra...</h6>\
+        </div>');
+        return;
+      }
+      else {
+        $('.notification-counter-badge').text(chats.length);
+        $('.notification-counter-badge').removeClass('d-none');
+        $('.notifications-box').empty();
+        chats.forEach(function(chat){
+          $('.notifications-box').append('<div class="row remove-side-margin notifications-box-row" onclick="clickedChatNotification('+chat.orderID+'); $(this).remove();">\
+            <span class="badge badge-danger">'+chat.messagesCount+'</span>&#160;'+chat.orderName+'\
+          </div>');
+        });
+      }
+    }
+
+    function clickedChatNotification(id){
+      return loadChatMessages(id).then(function(){ getChatUnreadMessages(); });
+    }
+  </script>
 </head>
 <body>
     <div id="app">
@@ -42,10 +209,17 @@
                 <a class="navbar-brand" href="{{ url('/') }}">
                     <img src="{{asset('media/logo.png')}}" alt="brand_img" />
                 </a>
+                  <button class="btn btn-warning d-md-none btn-notifications"><span class="fas fa-comments"></span>&#160;<span class="badge badge-danger notification-counter-badge d-none"></span>
+                  <div class="notifications-box">
+                    <div class="row remove-side-margin p-10">
+                      <h6 class="text-center">Naujų chato žinučių nėra...</h6>
+                    </div>
+                  </div></button>
+
+
                 <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-
                 <div class="collapse navbar-collapse" id="navbarSupportedContent">
                     <!-- Left Side Of Navbar -->
                     @if(Auth::user()->role == "Vadybininkas")
@@ -68,6 +242,14 @@
                       </ul>
                     @endif
                     <ul class="navbar-nav ml-auto">
+                        <li class="nav-item">
+                          <button class="btn btn-warning btn-notifications d-none d-md-inline-block"><span class="fas fa-comments"></span>&#160;<span class="badge badge-danger notification-counter-badge d-none"></span>
+                            <div class="notifications-box">
+                              <div class="row remove-side-margin p-10">
+                                <h6 class="text-center">Naujų chato žinučių nėra...</h6>
+                              </div>
+                            </div></button>
+                        </li>
                             <li class="nav-item dropdown">
                                 <a id="navbarDropdown" class="nav-link dropdown-toggle" href="#" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                     {{ Auth::user()->name }} <span class="caret"></span>
@@ -105,6 +287,7 @@
     </div>
 
     <!-- Scripts -->
+    <script src="{{asset('js/app.js')}}"></script>
     <script src="{{asset('config.js')}}"></script>
     <script src="{{asset('js/style.js')}}"></script>
     <script>
@@ -117,144 +300,7 @@
      ga('send', 'pageview');
      /* jshint ignore:end */
    </script>
-   <script src="{{asset('js/app.js')}}"></script>
-   <script src="https://code.jquery.com/jquery-2.2.4.min.js" integrity="sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44=" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
-    <script>
-    (function($) {
-      $(function() {
-        var activeurl = window.location + '';
-        var active = activeurl.split('?');
-        $('a[href="'+active[0]+'"]').addClass('active');
-      });
-    })(jQuery);
-
-
-    var loadDate = null;
-    function formatedDate()
-    {
-      var date = new Date();
-      var month = (date.getMonth()+1).toString();
-      var day = (date.getDate()).toString();
-      var hours = (date.getHours()).toString();
-      var minutes = (date.getMinutes()).toString();
-      var seconds = (date.getSeconds()).toString();
-      if(month.length < 2)
-        month = "0"+month;
-      if(day.length < 2)
-        day = "0"+day;
-      if(hours.length < 2)
-       hours = "0"+hours;
-      if(minutes.length <2)
-        minutes = "0"+minutes;
-      if(seconds.length <2)
-        seconds = "0"+seconds;
-
-      return date.getFullYear()+"-"+month+"-"+day+" "+hours+":"+minutes+":"+seconds;
-    }
-    $(document).ready(function(){
-        loadDate = formatedDate();
-
-      navigator.serviceWorker.register('{{asset('service-worker.js')}}');
-
-      setInterval(function(){
-      $.ajax({
-        url: '/checkupdates',
-        type: 'POST',
-        dataType: 'html',
-        data: {date: loadDate, _token: "{{ csrf_token() }}"},
-        success: function(data){
-          if(data != "0")
-          {
-            sendNotification();
-          }
-          }
-        });
-      },3000);
-
-      });
-
-      var user = {{Auth::user()->id}};
-
-      function loadChatMessages(id){
-        fetch('/chat/get/'+id, {credentials: "same-origin"})
-        .then(processStatus)
-        .then(parseJson)
-        .then(function(data){
-          $('#chat-content').empty();
-          $('#chat-box-order-id').val(id);
-          $('#chat-header').html(data['name']);
-          data['chat_messages'].forEach(function(message){
-            if(message['UserID'] === user){
-              $('#chat-content').append('<li class="send-msg float-right mb-2"><p class="pt-1 pb-1 pl-2 pr-2 m-0 rounded">'+message['ChatMessage']+'</p></li>');
-            }
-            else{
-              $('#chat-content').append('<li class="receive-msg float-left mb-2">\
-                  <div class="sender-img">\
-                      <span class="float-left">'+message['user']['name']+'</span>\
-                  </div>\
-                  <div class="receive-msg-desc float-left ml-2">\
-                      <p class="bg-white m-0 pt-1 pb-1 pl-2 pr-2 rounded">\
-                          '+message['ChatMessage']+'\
-                      </p>\
-                  </div>\
-              </li>');
-            }
-          })
-          $('.chat-main').show();
-          var chatContent = $('#chat');
-          chatContent.animate({ scrollTop: chatContent.prop('scrollHeight')}, 100);
-        })
-      }
-
-      function sendNotification(){
-        $.ajax({
-          url: '/notificationinfo',
-          type: 'get',
-          dataType: 'html',
-          success: function(data){
-            navigator.serviceWorker.controller.postMessage({'action': data})
-            $.ajax({
-              url: 'https://fcm.googleapis.com/fcm/send',
-              headers:
-              {
-                Authorization: "key=AAAAD--1Bhs:APA91bEW1ikmiEsJKbC56GicMwAGiOCZu5GDGg8pZH23azP0TfEYeAnWIDXpklXd5i_h82uNxaXaaMT0B74B978oGMhSvjbF9CSq0fTPjYUtYhVhncg0JPNynXJwW8kMAE2-28ql1Qmy",
-              },
-              type: 'POST',
-              contentType: 'application/json',
-              dataType: 'json',
-              data: JSON.stringify(
-                {
-                  "to": '{{Auth::user()->notificationToken}}',
-                  "notification" : {
-                    "icon" : '{{asset('media/logo.png')}}',
-                    "sound" : "default"
-                  }
-                }
-              ),
-              success: function(){
-                location.reload();
-              }
-            });
-            }
-        });
-      }
-
-      function updateUserSubscription(subscriptionId){
-        $.ajax({
-          url: '/updatesub',
-          type: 'POST',
-          dataType: 'html',
-          data: {_token: "{{ csrf_token() }}", subscription: subscriptionId},
-          success: function(data){
-            if(data == "0"){
-              alert('Klaida: notifikacijų įjungti nepavyko.');
-            }
-          }
-        })
-      }
-
-    </script>
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
 </body>
 </html>

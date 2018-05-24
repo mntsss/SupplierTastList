@@ -81,8 +81,10 @@ Route::post('/sendnotification', 'OrderController@sendFCM')->name('send.notifica
 
 Route::post('/updatesub', 'UserController@updateNotificationSubscription')->name('user.notification.update');
 
-Route::get('/notificationinfo', 'OrderController@getNotificationInfo')->name('order.notification.info');
+Route::get('/notification/send', 'OrderController@sendNotifiation')->name('order.notification.send');
+Route::get('/notification/info', 'OrderController@getNotificationInfo')->name('order.notification.info');
 
 Route::post('/chat/new', 'ChatController@newMessage')->name('chat.new');
 Route::get('/chat/get/{orderID}', 'ChatController@getMessages')->name('chat.get');
+Route::get('/chat/unread', 'ChatController@getUnreadChats')->name('chat.unread');
 Route::get('/chat/{orderID}', 'ChatController@index')->name('chat');

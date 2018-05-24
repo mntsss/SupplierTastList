@@ -13694,7 +13694,12 @@ module.exports = __webpack_require__(38);
 __webpack_require__(12);
 
 Echo.channel('chat').listen('ChatMessageSent', function (e) {
-  loadChatMessages(e.orderID);
+  if (user.role === 'Tiekejas' || user.name === e.order.whoAdded) {
+    loadChatMessages(e.order.id);
+    if (!document.hasFocus()) {
+      sendChatNotification();
+    }
+  }
 });
 
 /***/ }),

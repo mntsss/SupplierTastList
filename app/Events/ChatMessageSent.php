@@ -11,18 +11,18 @@ use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 
-use App\User;
+use App\Order;
 use App\ChatMessage;
 
 class ChatMessageSent implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public $orderID;
+    public $order;
 
-    public function __construct($orderID)
+    public function __construct(Order $order)
     {
-        $this->orderID = $orderID;
+        $this->order = $order;
     }
 
     public function broadcastOn()

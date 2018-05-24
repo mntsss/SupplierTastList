@@ -3,6 +3,7 @@
 	width: 260px;
 	bottom: 0;
 	right: 20px;
+	z-index: 9999;
 }
 .header-one{
 	background: #404040;

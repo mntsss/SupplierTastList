@@ -20,7 +20,6 @@ self.addEventListener('push', function(event) {
 
 self.addEventListener('message', function (evt) {
   body = evt.data['action'];
-  console.log('postMessage received', body);
 })
 
 self.addEventListener('notificationclick', function(event) {

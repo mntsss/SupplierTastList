@@ -9,5 +9,10 @@ require('./bootstrap');
 
 Echo.channel('chat')
   .listen('ChatMessageSent', (e) => {
-      loadChatMessages(e.orderID);
+    if(user.role === 'Tiekejas' || user.name === e.order.whoAdded){
+      loadChatMessages(e.order.id);
+      if (!document.hasFocus()) {
+        sendChatNotification();
+      }
+    }
   });

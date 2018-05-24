@@ -31,11 +31,39 @@ class ChatController extends Controller
       ]);
 
       $message = ChatMessage::where('OrderID', $request->orderID)->orderBy('created_at', 'DESC')->first();
-      broadcast(new ChatMessageSent($request->orderID))->toOthers();
+      broadcast(new ChatMessageSent(Order::find($request->orderID)))->toOthers();
       return 1;
     }
 
     public function getMessages($orderID){
+        Order::find($orderID)->chatMessages()->where('IsRead', false)->where('UserID', '!=', Auth::user()->id)->update(['IsRead' => true]);
       return json_encode(Order::with('chatMessages.user')->find($orderID));
+    }
+
+    public function getUnreadChats(){
+      $chatsWithUnreadMesseges = [];
+      if(Auth::user()->role == "Vadybininkas"){
+        $orders = Order::where(function($q){
+          $q->where('status', 'active')->orWhere('status', 'return');
+        })->where('whoAdded', Auth::user()->name)->with('chatMessages')->get();
+        foreach($orders as $order){
+          $messCount = $order->chatMessages->where('UserID', '!=', Auth::user()->id)->where('IsRead', false)->count();
+          if($messCount > 0){
+            array_push($chatsWithUnreadMesseges, ['orderID' => $order->id, 'messagesCount' => $messCount, 'orderName' => $order->name]);
+          }
+        }
+      }
+      else{
+        $orders = Order::where(function($q){
+          $q->where('status', 'active')->orWhere('status', 'return');
+        })->with('chatMessages')->get();
+        foreach($orders as $order){
+          $messCount = $order->chatMessages->where('UserID', '!=', Auth::user()->id)->where('IsRead', false)->count();
+          if($messCount > 0){
+            array_push($chatsWithUnreadMesseges, ['orderID' => $order->id, 'messagesCount' => $messCount, 'orderName' => $order->name]);
+          }
+        }
+      }
+      return json_encode($chatsWithUnreadMesseges);
     }
 }

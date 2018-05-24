@@ -640,9 +640,9 @@ class OrderController extends Controller
 
     public function getNotificationInfo(){
       if(Auth::user()->role == 'Tiekėjas'){
-        $a = Action::orderBy('updated_at', 'DESC')->where(function($q){
+        $a = Action::where(function($q){
           $q->where('newStatus', 'active')->orWhere('newStatus', 'return')->orWhere('newStatus', 'deleted');
-        })->first();
+        })->orderBy('created_at', 'DESC')->first();
         if(!is_null($a))
           return strip_tags($a->stringOutput());
         else return 0;
@@ -650,7 +650,7 @@ class OrderController extends Controller
       else{
         $a =  Order::where('whoAdded', Auth::user()->name)->orderBy('updated_at', 'DESC')->first()->actions()->where(function($q){
           $q->where('newStatus', 'found')->orWhere('newStatus', 'returned');
-        })->first();
+        })->orderBy('created_at', 'DESC')->first();
         if(!is_null($a))
           return strip_tags($a->stringOutput());
         else return 0;
@@ -670,6 +670,46 @@ class OrderController extends Controller
     public function setSupplierOrderColorNone($id){
       Order::find($id)->update(['supplier' => null]);
       return back();
+    }
+
+    public function sendNotifiation(){
+      $data = [
+        'to' => Auth::user()->notificationToken,
+        'notification' => [
+          'icon' => asset('media/logo.png'),
+          'sound' => 'default'
+        ],
+      ];
+
+      $curl = curl_init();
+
+      curl_setopt_array($curl, array(
+        CURLOPT_URL => "https://fcm.googleapis.com/fcm/send",
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_ENCODING => "",
+        CURLOPT_MAXREDIRS => 10,
+        CURLOPT_TIMEOUT => 30000,
+        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+        CURLOPT_CUSTOMREQUEST => "POST",
+        CURLOPT_POSTFIELDS => json_encode($data),
+        CURLOPT_HTTPHEADER => array(
+    	    "Authorization: key=AAAAD--1Bhs:APA91bEW1ikmiEsJKbC56GicMwAGiOCZu5GDGg8pZH23azP0TfEYeAnWIDXpklXd5i_h82uNxaXaaMT0B74B978oGMhSvjbF9CSq0fTPjYUtYhVhncg0JPNynXJwW8kMAE2-28ql1Qmy",
+          "accept: */*",
+          "accept-language: en-US,en;q=0.8",
+          "content-type: application/json",
+        ),
+      ));
+
+      $response = curl_exec($curl);
+      $err = curl_error($curl);
+
+      curl_close($curl);
+
+      if ($err) {
+        echo "cURL Error #:" . $err;
+      } else {
+        print_r(json_decode($response));
+      }
     }
 
 }
