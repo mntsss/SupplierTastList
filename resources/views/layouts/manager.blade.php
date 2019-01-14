@@ -136,7 +136,11 @@
             contentType: 'application/json',
             dataType: 'json',
             complete: function(){
-              location.reload();
+              if(window.location.pathname == "/active"){
+                location.reload();
+              }else{
+                loadDate = formatedDate();
+              }
             }
           });
           }

@@ -473,6 +473,8 @@ class OrderController extends Controller
         return redirect()->route('active');
       }
       $order = Order::find($id);
+      if($order->status != "found" || $status != "active")
+        return redirect()->back();
       Action::create([
         'orderId' => $id,
         'newStatus' => 'delivered',
